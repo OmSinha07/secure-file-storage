@@ -1,0 +1,18 @@
+{
+  "default_user_0": {
+    "filename": "enc_default_user_0.dat",
+    "original_filename": "test_folder_1.txt",
+    "encrypted_aes_key": "fj80inO8YX2bAjEggmG/1qWuXK7vWOsaRmT/rtM3NDYUogrusG5PPaXakiWxDcvjOzbRCE1xY8zndfWVUDOvCbLZ/s4OlQKXRsqFVV8zf9mBYJUoA2vmK80Gnj2jhs4t5ZrePZSQHHnf9yRbfPv77hNTEptfv80A2CqHbGGjEkXFIWUtCXKqlYWAyCJOQVmw/14kkWo6L/455EsBn3INo5UwFXmRq7UML8AYabOMnQKQASFC6NzIaGHgi/pT2X7gRCnovhpfJIr8oc8AsKZFf1iMfm91RTcxwKGJcVV6NEfetEkpv1CWgiMiykCdla3XlGj8zLLV4Vp7rKgCzmLyQg==",
+    "file_size": 94,
+    "user_id": "default_user",
+    "uploaded_at": "2025-09-14T11:13:27.437051"
+  },
+  "default_user_1": {
+    "filename": "enc_default_user_1.dat",
+    "original_filename": "test_folder.txt",
+    "encrypted_aes_key": "Jq9F5KKD5PD/3g7+n9CSOWErM6FqwaHg4tr+xPe3/hPDgKqIfa4BTz7XBr01kGe4o7DAaIoh3O+39nCIPyGjQa+O+mEb0CGnfVDDOfALBnDspvJdKljVyUW0vCuH3CuiFfzmERxnVzk3ashuNloYwY85aYLlALqh2fjNuKuOXkhxWQOKYgNICnS4/8APTTqAoT2VCYXSO/hss8MhX1ZugIN0byYe+vtYzAiGF2m7HeW2wpLjXzFmfm6CzQCEHra2F5hsejo/xj0+TLQK3z+xC3k1GavuD+TLwHhzHxVQT/RUtY8y7IfLXIGZvGe77dEMjP0OQyw0FITWVOq8IiSbSA==",
+    "file_size": 94,
+    "user_id": "default_user",
+    "uploaded_at": "2025-09-14T11:21:25.570114"
+  }
+}

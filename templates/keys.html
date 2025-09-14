@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Encryption Keys</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .key-container { background: white; padding: 20px; margin: 15px 0; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .key-text { background: #f8f9fa; padding: 15px; border-radius: 5px; font-family: monospace; font-size: 12px; word-break: break-all; border: 1px solid #dee2e6; max-height: 200px; overflow-y: auto; }
+        .btn { background: #007bff; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; }
+        .warning { background: #fff3cd; color: #856404; padding: 15px; border-radius: 8px; margin: 15px 0; border: 1px solid #ffeaa7; }
+    </style>
+</head>
+<body>
+    <h1>🔑 Your Encryption Keys</h1>
+    <p><strong>User ID:</strong> {{ user_id }}</p>
+    
+    <div class="warning">
+        <strong>⚠️ Security Warning:</strong> These keys are shown for educational purposes. In production, private keys should NEVER be displayed and should be encrypted with user passwords.
+    </div>
+    
+    <div class="key-container">
+        <h3>🔓 RSA Public Key (Safe to share)</h3>
+        <p>This key encrypts AES keys for your files. Anyone can use this to encrypt data FOR you.</p>
+        <div class="key-text">{{ keys.public_key }}</div>
+    </div>
+    
+    <div class="key-container">
+        <h3>🔐 RSA Private Key (Keep secret!)</h3>
+        <p>This key decrypts your files. NEVER share this with anyone!</p>
+        <div class="key-text">{{ keys.private_key }}</div>
+    </div>
+    
+    <a href="/" class="btn">← Back to Files</a>
+</body>
+</html>
