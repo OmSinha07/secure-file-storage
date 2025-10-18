@@ -89,3 +89,4 @@ class CryptoManager:
 
 # Global instance
 crypto_manager = CryptoManager()
+

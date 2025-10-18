@@ -1,9 +1,14 @@
+
+# ============================================
+# FILE 5: file_storage.py (UPDATED)
+# ============================================
+
 import json
 import os
 from datetime import datetime
 
 class FileStorage:
-    """Store file metadata and encrypted keys"""
+    """Enhanced file storage with ML metadata support"""
     
     def __init__(self, storage_file='file_metadata.json'):
         self.storage_file = storage_file
@@ -21,8 +26,10 @@ class FileStorage:
         with open(self.storage_file, 'w') as f:
             json.dump(self.files, f, indent=2)
     
-    def store_file_info(self, filename, original_filename, encrypted_key, file_size, user_id='default_user'):
-        """Store file metadata"""
+    def store_file_info(self, filename, original_filename, encrypted_key, file_size, 
+                       user_id='default_user', sensitivity='MEDIUM', ml_confidence=0.0, 
+                       entropy=0.0, crypto_config='AES-256 + RSA-2048'):
+        """Store file metadata with ML analysis results"""
         file_id = f"{user_id}_{len(self.files)}"
         
         self.files[file_id] = {
@@ -31,14 +38,20 @@ class FileStorage:
             'encrypted_aes_key': encrypted_key,
             'file_size': file_size,
             'user_id': user_id,
-            'uploaded_at': datetime.now().isoformat()
+            'uploaded_at': datetime.now().isoformat(),
+            
+            # ML-specific fields
+            'sensitivity': sensitivity,
+            'ml_confidence': ml_confidence,
+            'entropy': entropy,
+            'crypto_config': crypto_config
         }
         
         self.save_files()
         return file_id
     
     def get_file_info(self, file_id):
-        """Get file metadata"""
+        """Get file metadata by ID"""
         return self.files.get(file_id)
     
     def get_user_files(self, user_id='default_user'):
