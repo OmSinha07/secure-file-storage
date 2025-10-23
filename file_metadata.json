@@ -46,5 +46,17 @@
     "ml_confidence": 1.0,
     "entropy": 4.16564007725408,
     "crypto_config": "AES-128 + RSA-1024"
+  },
+  "default_user_4": {
+    "filename": "enc_low_default_user_4.dat",
+    "original_filename": "test_folder_3.txt",
+    "encrypted_aes_key": "a5z3SNkSsUHevlnVdlQJtcFVp8ejNlv/YEs/67/EkyUOEeMQ+jAuvJf/FHHhGVfDWUtkHTM+2iE+FkU5g/ZLCUOFMNUT/ZLhNnRG8v5tDQuJ2kHlkLYuOSTUzl1ECNrAEfb86Tdqlp4T0V5tlKK5l5Gm9ftwoNjxWjAB29VeuSc=",
+    "file_size": 94,
+    "user_id": "default_user",
+    "uploaded_at": "2025-10-23T14:07:50.044584",
+    "sensitivity": "LOW",
+    "ml_confidence": 1.0,
+    "entropy": 4.16564007725408,
+    "crypto_config": "AES-128 + RSA-1024"
   }
 }
