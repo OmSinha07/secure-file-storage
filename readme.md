@@ -1,321 +1,194 @@
-# 🔒 Secure File Storage System
+# 🔒 Secure File Storage System (ML-Adaptive)
 
-A Flask-based secure file storage system using **hybrid cryptography** (AES-256 + RSA-2048) for zero-knowledge file encryption.
+A Flask-based secure file storage system using user authentication, ML-based sensitivity classification, and adaptive hybrid cryptography for zero-knowledge file encryption.
 
 ## 🌟 Features
 
-### ✅ Phase 2 (Current) - Hybrid Encryption Active
-- **🔐 Military-grade encryption** - AES-256-CBC for files, RSA-2048 for keys
-- **🔑 Automatic key generation** - RSA key pairs generated per user
-- **🛡️ Zero-knowledge storage** - Server cannot decrypt user files
-- **📁 Seamless experience** - Upload/download feels normal to users
-- **🔒 Hybrid cryptography** - Fast AES encryption + secure RSA key protection
-- **📊 File metadata tracking** - Secure storage of encrypted file information
+### ✅ Current Version
+
+- 🧠 **ML-Powered Sensitivity Analysis** - Automatically classifies files (LOW, MEDIUM, HIGH) based on content, extension, and entropy.
+- 🔐 **Adaptive Hybrid Cryptography** - Applies encryption strength matching the file's sensitivity (e.g., AES-128 + RSA-1024 for LOW, AES-256 + RSA-4096 for HIGH).
+- 👥 **Multi-User Authentication** - Secure user registration and login system with password hashing and validation.
+- 🛡️ **Per-User, Per-Sensitivity Keys** - Each user gets unique RSA key pairs generated for each sensitivity level (LOW, MEDIUM, HIGH).
+- 🗄️ **Database Storage** - Uses SQLAlchemy (SQLite by default) to store user info, encrypted file metadata, and audit logs.
+- 🧾 **Audit Logging** - Tracks key events like login, upload, download, and delete for security monitoring.
+- 🔑 **Zero-Knowledge Architecture** - The server and administrators have no access to the private keys or plaintext file data.
+- 📁 **User Dashboard & Profile** - Users can manage their files and view personal stats like storage used and file sensitivity breakdown.
 
 ### ⏳ Planned Features (Future Phases)
-- **👥 User authentication** - Individual accounts with isolated storage
-- **🤝 File sharing** - Share encrypted files between users
-- **☁️ Cloud storage integration** - AWS S3 compatibility
-- **📱 Modern UI** - React frontend with drag-and-drop
-- **🔗 API endpoints** - RESTful API for third-party integrations
+
+- 🤝 **File Sharing** - Securely share encrypted files between users.
+- ☁️ **Cloud Storage Integration** - AWS S3 compatibility.
+- 📱 **Modern UI** - React frontend with drag-and-drop.
+- 🔗 **API Endpoints** - RESTful API for third-party integrations.
 
 ## 🏗️ System Architecture
 
-### Hybrid Encryption Flow
+### ML-Adaptive Encryption Flow
+
+**Upload:**
 ```
-Upload: File → AES-256 Encryption → RSA Key Protection → Secure Storage
-Download: Encrypted Data → RSA Key Recovery → AES Decryption → Original File
+File → ML Sensitivity Analysis (e.g., "HIGH")
+     → Select HIGH Config (AES-256 + RSA-4096)
+     → Encrypt File with AES-256
+     → Encrypt AES key with User's "HIGH" RSA-4096 Public Key
+     → Store in DB & Filesystem
+```
+
+**Download:**
+```
+Request File
+     → Fetch Encrypted Data + Encrypted AES Key
+     → Get User's "HIGH" RSA-4096 Private Key
+     → Decrypt AES key with RSA Private Key
+     → Decrypt File with AES Key
+     → Return Original File
 ```
 
 ### Security Model
-- **Files**: Encrypted with unique AES-256 keys per file
-- **Keys**: AES keys encrypted with user's RSA-2048 public key
-- **Storage**: All data stored encrypted, server has no access to plaintext
-- **Zero-knowledge**: Even system administrators cannot access user files
+
+- **Files:** Encrypted with unique AES keys (128, 192, or 256-bit) based on ML-defined sensitivity.
+- **Keys:** AES keys are encrypted with the user's corresponding RSA public key (1024, 2048, or 4096-bit).
+- **Storage:** All file data is stored encrypted. All keys are stored encrypted (AES keys) or are user-specific (RSA keys).
+- **Authentication:** User passwords are securely hashed using werkzeug.security.
+- **Zero-Knowledge:** The server never holds a user's private key or plaintext file data. Decryption only happens on the user's side (conceptually) or ephemerally during the download request, protected by the user's login session.
 
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - Python 3.7+
 - pip (Python package manager)
 
 ### Installation
 
 1. **Clone the repository**
-   ```bash
-   git clone https://github.com/YOUR_USERNAME/secure-file-storage.git
-   cd secure-file-storage
-   ```
+
+```bash
+git clone https://github.com/YOUR_USERNAME/secure-file-storage.git
+cd secure-file-storage
+```
 
 2. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
 
-3. **Run the application**
-   ```bash
-   python app.py
-   ```
+```bash
+pip install -r requirements.txt
+```
 
-4. **Open your browser**
-   ```
-   http://localhost:5000
-   ```
+3. **Initialize the database**
+
+```bash
+flask init-db
+```
+
+4. **Create an admin user (Optional, but recommended)**
+
+```bash
+flask create-admin
+# Follow prompts for username, email, and password
+```
+
+5. **Run the application**
+
+```bash
+python app_with_auth.py
+```
+
+6. **Open your browser**
+
+Navigate to `http://localhost:5000`
+
+You will be redirected to the login page. Register a new user or log in with the admin account.
 
 ## 🛠️ Technology Stack
 
 ### Backend
 - **Flask** - Web framework
-- **pycryptodome** - Cryptographic operations
-- **Python 3.9+** - Programming language
+- **Flask-Login** - User session management
+- **Flask-SQLAlchemy** - Database ORM
+- **Werkzeug** - Password hashing, file handling
+
+### ML / Data
+- **scikit-learn** - ML model for file classification
+- **joblib** - Model persistence
+- **pandas** - Data handling for ML
 
 ### Cryptography
-- **AES-256-CBC** - File encryption
-- **RSA-2048** - Key encryption  
-- **PKCS#1 OAEP** - RSA padding
-- **PKCS#7** - AES padding
-- **Random IV** - Initialization vectors
+- **pycryptodome** - Cryptographic operations
+- **AES-CBC (128/192/256-bit)** - Adaptive file encryption
+- **RSA-OAEP (1024/2048/4096-bit)** - Adaptive key encryption
+- **Base64** - Binary data handling
 
 ### Storage
-- **JSON files** - Key and metadata storage (Phase 2)
-- **Local filesystem** - Encrypted file storage
-- **Base64 encoding** - Binary data handling
+- **SQLite** - Default database for users, files, and logs
+- **Local Filesystem** - Storage for encrypted file blobs (`encrypted_uploads/`)
 
 ## 📁 Project Structure
 
 ```
 secure-file-storage/
-├── app.py                    # Main Flask application
-├── crypto_utils.py           # Cryptographic operations
-├── key_storage.py            # RSA key management
-├── file_storage.py           # File metadata management
+├── app_with_auth.py          # Main Flask application with auth
+├── auth.py                   # Authentication routes blueprint (login, register)
+├── ml_classifier.py          # ML model for sensitivity classification
+├── crypto_utils_adaptive.py  # Adaptive crypto logic (AES/RSA)
+├── key_storage.py            # Manages storage/retrieval of user keys
+├── models.py                 # SQLAlchemy database models (User, EncryptedFile)
 ├── requirements.txt          # Python dependencies
-├── README.md                 # Project documentation
-├── .gitignore               # Git ignore rules
+├── README.md                 # This file
+├── .gitignore                # Git ignore rules
 ├── templates/
-│   ├── index_encrypted.html  # Main page with encryption status
-│   ├── success_encrypted.html # Upload success page
-│   └── keys.html            # Key viewing page (debug)
-├── encrypted_uploads/        # Encrypted files storage
-├── user_keys.json           # RSA key pairs (auto-generated)
-└── file_metadata.json       # File metadata (auto-generated)
-```
-
-## 🔐 Security Features
-
-### Encryption Details
-- **File Encryption**: AES-256 in CBC mode with random IV
-- **Key Encryption**: RSA-2048 with PKCS#1 OAEP padding
-- **Key Generation**: Cryptographically secure random keys
-- **Padding**: PKCS#7 for AES, OAEP for RSA
-
-### Security Guarantees
-- ✅ Files are **never stored in plaintext**
-- ✅ Each file gets a **unique AES key**
-- ✅ AES keys are **RSA-encrypted** before storage
-- ✅ Server has **no access** to user data without private keys
-- ✅ **Computationally infeasible** to break (2048-bit RSA)
-
-### What Attackers See
-```bash
-# Encrypted file on disk
-encrypted_uploads/enc_default_user_0.dat:
-xJ2kL9mP3vQ8aBcDeFgH1iJkLmNoPqRsTuVwXyZ... (gibberish)
-
-# Encrypted AES key in metadata
-"encrypted_aes_key": "kM9nX2pL5qR8..." (RSA-encrypted)
+│   ├── index_ml_adaptive.html  # Main file dashboard
+│   ├── login.html              # Login page
+│   ├── register.html           # Registration page
+│   ├── profile.html            # User profile page
+│   ├── ml_stats.html           # ML statistics view
+│   ├── keys.html               # Key viewing page (debug)
+│   └── ... (other html files)
+├── encrypted_uploads/        # Encrypted file data
+├── secure_storage.db         # SQLite Database (auto-generated)
+└── ml_model.pkl              # Trained ML model (auto-generated)
 ```
 
 ## 🧪 Testing Your Installation
 
-### 1. Basic Functionality Test
-```bash
-# Upload a file through the web interface
-# Check that encrypted_uploads/ contains .dat files
-# Download the file - should be identical to original
-```
-
-### 2. Encryption Verification
-```bash
-# Open any .dat file in encrypted_uploads/
-# Content should be unreadable gibberish
-# This proves encryption is working
-```
-
-### 3. Key Management Test
-```bash
-# Visit http://localhost:5000/keys
-# Should show your RSA public and private keys
-# Delete user_keys.json and restart
-# New keys should be generated automatically
-```
-
-## 📊 Development Phases
-
-### ✅ Phase 1: Basic File Storage (Completed)
-- File upload/download functionality
-- Basic Flask web interface
-- Local file storage
-
-### ✅ Phase 2: Hybrid Encryption (Current)
-- AES-256 file encryption
-- RSA-2048 key management
-- Zero-knowledge architecture
-- Enhanced UI with encryption status
-
-### ⏳ Phase 3: User Management (Planned)
-- User registration/login system
-- Individual key pairs per user
-- Session management
-- User file isolation
-
-### ⏳ Phase 4: Advanced Features (Planned)
-- File sharing between users
-- Cloud storage integration (AWS S3)
-- RESTful API
-- React frontend
-- Mobile responsiveness
-
-## 🔧 Configuration
-
-### Environment Variables
-```bash
-# Flask configuration
-FLASK_ENV=development          # development/production
-SECRET_KEY=your-secret-key     # Change in production
-
-# Encryption settings
-RSA_KEY_SIZE=2048             # RSA key size in bits
-AES_KEY_SIZE=32               # AES key size in bytes (256-bit)
-
-# File upload limits
-MAX_FILE_SIZE=16777216        # 16MB in bytes
-ALLOWED_EXTENSIONS=txt,pdf,png,jpg,jpeg,gif,doc,docx
-```
-
-### Production Deployment
-For production use:
-- Change `SECRET_KEY` to a secure random value
-- Use PostgreSQL instead of JSON files
-- Enable HTTPS/TLS
-- Use cloud storage (AWS S3) with encryption at rest
-- Implement proper user authentication
-- Add rate limiting and input validation
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-### Development Setup
-```bash
-# Clone your fork
-git clone https://github.com/YOUR_USERNAME/secure-file-storage.git
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-
-# Install development dependencies
-pip install -r requirements.txt
-pip install pytest pytest-flask  # For testing
-
-# Run tests
-pytest
-
-# Run with debug mode
-python app.py
-```
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## ⚠️ Security Disclaimers
-
-### Current Implementation (Phase 2)
-- **Educational purposes**: This is a learning project demonstrating encryption concepts
-- **Single-user**: Currently designed for single-user scenarios
-- **JSON storage**: Uses JSON files instead of proper database (development only)
-- **Key display**: Shows keys in `/keys` endpoint for debugging (remove in production)
-
-### Production Considerations
-- Implement proper user authentication
-- Use encrypted database storage
-- Add key derivation from passwords
-- Implement secure key backup/recovery
-- Add audit logging
-- Use hardware security modules (HSM) for key storage
-- Implement proper session management
-- Add CSRF protection and input validation
+1. **Register a User:** Go to `http://localhost:5000/auth/register` and create an account.
+2. **Log In:** Log in with your new credentials.
+3. **Upload Files:** Upload various files (e.g., .txt, .jpg, .pdf, .zip).
+4. **Check Dashboard:** Observe the "Sensitivity" and "Crypto Config" columns. You should see different values (e.g., LOW, MEDIUM) based on the files you uploaded.
+5. **Download Files:** Download your files and verify they are identical to the originals.
+6. **Check Database:** Use a tool like "DB Browser for SQLite" to open `secure_storage.db` and inspect the `user`, `encrypted_file`, and `audit_log` tables.
+7. **Check File Storage:** Look in the `encrypted_uploads/` directory. All files should have names like `enc_low_username_12345.dat` and contain unreadable gibberish.
 
 ## 🆘 Troubleshooting
 
-### Common Issues
+### ImportError: No module named 'Crypto'
+You have the wrong library. Install `pycryptodome`.
 
-**ImportError: No module named 'Crypto'**
 ```bash
+pip uninstall pycrypto
 pip install pycryptodome
-# NOT pycrypto (deprecated)
 ```
 
-**Files not encrypting**
-```bash
-# Check that crypto_utils.py is in your project folder
-# Verify pycryptodome is installed correctly
-python -c "from Crypto.Cipher import AES; print('OK')"
-```
+### Files not encrypting / App crashing
+- Ensure `pycryptodome`, `scikit-learn`, and `flask_login` are installed: `pip install -r requirements.txt`.
+- Make sure you ran `flask init-db` before running the app for the first time.
+- Check that the `ml_model.pkl` file was created (it should be trained automatically on the first run if not present).
 
-**Permission errors on Windows**
-```bash
-# Run terminal as administrator or use:
-pip install --user pycryptodome
-```
+### Permission Errors
+Run your terminal as an administrator or ensure you have write permissions in the project directory (for creating the `.db` file and `encrypted_uploads/` folder).
 
-**Downloads failing**
-```bash
-# Check that user_keys.json exists
-# Verify file_metadata.json is not corrupted
-# Ensure encrypted_uploads/ folder exists
-```
+## 📄 License
 
-## 📞 Support
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-- **Issues**: [GitHub Issues](https://github.com/YOUR_USERNAME/secure-file-storage/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/YOUR_USERNAME/secure-file-storage/discussions)
-- **Security**: For security-related issues, please email directly instead of opening public issues
+## 👥 Contributing
 
-## 🙏 Acknowledgments
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-- **pycryptodome** - Excellent Python cryptography library
-- **Flask** - Lightweight and powerful web framework
-- **Cryptography community** - For best practices and security guidance
+## 📧 Contact
 
-## 📈 Roadmap
-
-### Short Term (Next Month)
-- [ ] User authentication system
-- [ ] File sharing capabilities
-- [ ] Database integration (SQLite/PostgreSQL)
-- [ ] Improved error handling
-
-### Medium Term (3-6 Months)  
-- [ ] React frontend
-- [ ] RESTful API
-- [ ] Cloud deployment guides
-- [ ] Mobile app compatibility
-
-### Long Term (6+ Months)
-- [ ] Multi-tenant architecture
-- [ ] Enterprise features
-- [ ] Third-party integrations
-- [ ] Advanced analytics
+For questions or support, please open an issue on GitHub.
 
 ---
 
-**⭐ Star this repo if you found it helpful!**
-
-**🔐 Built with security and privacy in mind.**
+**⚠️ Security Notice:** This is an educational project. For production use, conduct a thorough security audit and follow industry best practices.
