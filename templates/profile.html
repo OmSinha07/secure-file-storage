@@ -303,7 +303,7 @@
                 </div>
                 <div class="stat-card">
                     <div class="icon">💾</div>
-                    <div class="value">{{ total_size }}</div> {# Assuming total_size is pre-formatted in MB/GB #}
+                    <div class="value">{{ total_storage }}</div>
                     <div class="label">Storage Used</div>
                 </div>
                 <div class="stat-card">
@@ -326,8 +326,8 @@
         <div class="profile-section">
             <div class="activity-log">
                 <h3>Recent Activity</h3>
-                {% if recent_logs %}
-                    {% for log in recent_logs %}
+                {% if recent_activity %}
+                    {% for log in recent_activity %}
                     <div class="activity-item">
                         <div>
                             <div class="action">

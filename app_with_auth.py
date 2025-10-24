@@ -9,6 +9,7 @@ from werkzeug.utils import secure_filename
 import tempfile
 import time
 from datetime import timedelta
+import psutil  # For resource metrics
 
 # Import models and blueprints
 from models import db, User, EncryptedFile, AuditLog
@@ -47,7 +48,10 @@ app.register_blueprint(auth_bp, url_prefix='/auth')
 @login_manager.user_loader
 def load_user(user_id):
     """Load user for Flask-Login"""
-    return User.query.get(int(user_id))
+    # --- UPDATED CODE ---
+    # Changed from User.query.get() to db.session.get() to fix LegacyAPIWarning
+    return db.session.get(User, int(user_id))
+    # --- END UPDATE ---
 
 def allowed_file(filename):
     """Check if file extension is allowed"""
@@ -150,6 +154,13 @@ def upload_file():
     try:
         start_time = time.time()
         
+        # --- ADDED FOR METRICS ---
+        process = psutil.Process(os.getpid())
+        cpu_start = process.cpu_percent(interval=None)
+        mem_start_info = process.memory_info()
+        mem_start = mem_start_info.rss / (1024 * 1024)  # Get Resident Set Size in MB
+        # --- END METRICS ADDITION ---
+        
         # Read file data
         file_data = file.read()
         original_filename = secure_filename(file.filename)
@@ -199,8 +210,15 @@ def upload_file():
         
         encryption_time = (time.time() - start_time) * 1000  # ms
         
+        # --- ADDED FOR METRICS ---
+        cpu_end = process.cpu_percent(interval=None)
+        mem_end_info = process.memory_info()
+        mem_end = mem_end_info.rss / (1024 * 1024)  # Get Resident Set Size in MB
+        cpu_usage = cpu_end - cpu_start
+        # --- END METRICS ADDITION ---
+        
         log_audit('FILE_UPLOAD', 
-                 details=f'File: {original_filename}, Sensitivity: {sensitivity}')
+                 details=f'File: {original_filename}, Sensitivity: {sensitivity}, Time: {encryption_time:.1f}ms, CPU: {cpu_usage}%, Mem: {mem_end:.2f}MB') # <--- MODIFIED LOG
         
         flash(f'🧠 ML Analysis: {sensitivity} sensitivity ({confidence*100:.1f}% confidence)', 'success')
         flash(f'🔒 Encrypted with {crypto_config} in {encryption_time:.1f}ms', 'success')
@@ -225,6 +243,8 @@ def upload_file():
 def download_file(file_id):
     """Handle adaptive encrypted file download"""
     try:
+        start_time = time.time() # <--- ADDED FOR LATENCY
+        
         # Get file metadata
         file_info = EncryptedFile.query.get_or_404(file_id)
         
@@ -255,6 +275,8 @@ def download_file(file_id):
             sensitivity
         )
         
+        decryption_time = (time.time() - start_time) * 1000 # <--- ADDED FOR LATENCY
+        
         # Update last accessed
         file_info.update_last_accessed()
         
@@ -264,7 +286,7 @@ def download_file(file_id):
         temp_file.close()
         
         log_audit('FILE_DOWNLOAD', 
-                 details=f'File: {file_info.original_filename}')
+                 details=f'File: {file_info.original_filename}, Time: {decryption_time:.1f}ms') # <--- MODIFIED LOG
         
         return send_file(
             temp_file.name,
@@ -349,6 +371,11 @@ def show_keys():
 # Error handlers
 @app.errorhandler(404)
 def not_found(error):
+    # --- NOTE ---
+    # This is the function causing the 'TemplateNotFound' error from your log.
+    # It will crash *until* you create a file named '404.html'
+    # inside your 'templates' folder.
+    # --- END NOTE ---
     return render_template('404.html'), 404
 
 @app.errorhandler(403)
