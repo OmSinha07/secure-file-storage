@@ -124,6 +124,12 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
         }
+        /* --- NEW BUTTON STYLE --- */
+        .btn-secondary {
+            background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%);
+            color: white;
+        }
+        /* --- END NEW --- */
         .btn-danger {
             background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
             color: white;
@@ -323,6 +329,14 @@
             </div>
         </div>
 
+        <div class="profile-section">
+            <h2>Performance Reports</h2>
+            <p style="color: #666; margin-bottom: 20px;">Download performance metrics for analysis. (This is generally an admin-only feature).</p>
+            <div class="action-buttons">
+                <a href="{{ url_for('download_upload_report') }}" class="btn btn-secondary">📈 Download Upload Report (CSV)</a>
+                <a href="{{ url_for('download_download_report') }}" class="btn btn-secondary">📉 Download Download Report (CSV)</a>
+            </div>
+        </div>
         <div class="profile-section">
             <div class="activity-log">
                 <h3>Recent Activity</h3>

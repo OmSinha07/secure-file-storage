@@ -10,6 +10,8 @@ import tempfile
 import time
 from datetime import timedelta
 import psutil  # For resource metrics
+import csv # <<< ADDED
+from datetime import datetime # <<< ADDED
 
 # Import models and blueprints
 from models import db, User, EncryptedFile, AuditLog
@@ -31,6 +33,11 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB
 
 UPLOAD_FOLDER = 'encrypted_uploads'
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'doc', 'docx', 'xls', 'xlsx', 'zip'}
+
+# --- Performance Log Files --- # <<< ADDED
+UPLOAD_PERFORMANCE_CSV = 'upload_performance_metrics.csv'
+DOWNLOAD_PERFORMANCE_CSV = 'download_performance_metrics.csv'
+# --- END ADDED --- #
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
@@ -70,7 +77,26 @@ def log_audit(action, details=None, success=True):
         db.session.add(log)
         db.session.commit()
     except:
-        pass
+        pass # Keep the original silent pass
+
+# --- Helper function to log performance metrics --- # <<< ADDED
+def write_metrics_to_csv(csv_file, metrics_dict, fieldnames):
+    """Helper to append performance metrics to a CSV file."""
+    try:
+        file_exists = os.path.exists(csv_file)
+        
+        with open(csv_file, 'a', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            if not file_exists:
+                writer.writeheader()
+            writer.writerow(metrics_dict)
+            
+    except Exception as e:
+        # Don't crash the app if logging fails, just print to console
+        print(f"Error writing to performance CSV {csv_file}: {e}")
+        pass # Keep the original silent pass
+# --- END ADDED --- #
+
 
 @app.route('/')
 @login_required
@@ -118,17 +144,22 @@ def profile():
     }
     
     # Recent activity (last 10 audit logs)
-    recent_activity = AuditLog.query.filter_by(user_id=current_user.id)\
-        .order_by(AuditLog.timestamp.desc())\
-        .limit(10).all()
-    
+    # This might fail silently if the audit_log table doesn't exist
+    try:
+        recent_activity = AuditLog.query.filter_by(user_id=current_user.id)\
+            .order_by(AuditLog.timestamp.desc())\
+            .limit(10).all()
+    except Exception as e:
+        print(f"Warning: Could not fetch recent activity - {e}")
+        recent_activity = [] # Show empty list if query fails
+
     # Convert storage to human readable
-    def format_bytes(bytes):
+    def format_bytes(bytes_val):
         for unit in ['B', 'KB', 'MB', 'GB']:
-            if bytes < 1024.0:
-                return f"{bytes:.2f} {unit}"
-            bytes /= 1024.0
-        return f"{bytes:.2f} TB"
+            if bytes_val < 1024.0:
+                return f"{bytes_val:.2f} {unit}"
+            bytes_val /= 1024.0
+        return f"{bytes_val:.2f} TB"
     
     return render_template('profile.html',
                          user=current_user,
@@ -164,9 +195,10 @@ def upload_file():
         # Read file data
         file_data = file.read()
         original_filename = secure_filename(file.filename)
+        file_size_bytes = len(file_data) # <<< ADDED
         
         # Check file size
-        if len(file_data) > app.config['MAX_CONTENT_LENGTH']:
+        if file_size_bytes > app.config['MAX_CONTENT_LENGTH']: # <<< MODIFIED
             flash('File too large (max 16MB)', 'error')
             return redirect(url_for('index'))
         
@@ -197,7 +229,7 @@ def upload_file():
             user_id=current_user.id,
             filename=encrypted_filename,
             original_filename=original_filename,
-            file_size=len(file_data),
+            file_size=file_size_bytes, # <<< MODIFIED
             encrypted_aes_key=encrypted_aes_key,
             sensitivity=sensitivity,
             crypto_config=crypto_config,
@@ -216,9 +248,33 @@ def upload_file():
         mem_end = mem_end_info.rss / (1024 * 1024)  # Get Resident Set Size in MB
         cpu_usage = cpu_end - cpu_start
         # --- END METRICS ADDITION ---
-        
+
+        # --- ADDED FOR PERFORMANCE CSV LOGGING --- # <<< ADDED
+        try:
+            upload_fieldnames = [
+                'timestamp', 'username', 'filename', 'file_size_bytes', 
+                'sensitivity', 'ml_confidence', 'encryption_time_ms', 
+                'cpu_usage_percent', 'memory_usage_mb', 'crypto_config'
+            ]
+            upload_metrics = {
+                'timestamp': datetime.now().isoformat(),
+                'username': current_user.username,
+                'filename': original_filename,
+                'file_size_bytes': file_size_bytes,
+                'sensitivity': sensitivity,
+                'ml_confidence': confidence,
+                'encryption_time_ms': encryption_time,
+                'cpu_usage_percent': cpu_usage,
+                'memory_usage_mb': mem_end,
+                'crypto_config': crypto_config
+            }
+            write_metrics_to_csv(UPLOAD_PERFORMANCE_CSV, upload_metrics, upload_fieldnames)
+        except Exception as e:
+            print(f"Failed to log upload performance: {e}")
+        # --- END PERFORMANCE LOGGING --- # <<< ADDED
+
         log_audit('FILE_UPLOAD', 
-                 details=f'File: {original_filename}, Sensitivity: {sensitivity}, Time: {encryption_time:.1f}ms, CPU: {cpu_usage}%, Mem: {mem_end:.2f}MB') # <--- MODIFIED LOG
+                 details=f'File: {original_filename}, Sensitivity: {sensitivity}, Time: {encryption_time:.1f}ms, CPU: {cpu_usage:.2f}%, Mem: {mem_end:.2f}MB') # <<< MODIFIED LOG FORMATTING
         
         flash(f'🧠 ML Analysis: {sensitivity} sensitivity ({confidence*100:.1f}% confidence)', 'success')
         flash(f'🔒 Encrypted with {crypto_config} in {encryption_time:.1f}ms', 'success')
@@ -244,8 +300,15 @@ def download_file(file_id):
     """Handle adaptive encrypted file download"""
     try:
         start_time = time.time() # <--- ADDED FOR LATENCY
+
+        # --- ADDED FOR METRICS --- # <<< ADDED
+        process = psutil.Process(os.getpid())
+        cpu_start = process.cpu_percent(interval=None)
+        mem_start_info = process.memory_info()
+        mem_start = mem_start_info.rss / (1024 * 1024)
+        # --- END METRICS ADDITION --- # <<< ADDED
         
-        # Get file metadata
+        # Get file metadata - Using the original get_or_404
         file_info = EncryptedFile.query.get_or_404(file_id)
         
         # Check ownership
@@ -276,6 +339,13 @@ def download_file(file_id):
         )
         
         decryption_time = (time.time() - start_time) * 1000 # <--- ADDED FOR LATENCY
+
+        # --- ADDED FOR METRICS --- # <<< ADDED
+        cpu_end = process.cpu_percent(interval=None)
+        mem_end_info = process.memory_info()
+        mem_end = mem_end_info.rss / (1024 * 1024)
+        cpu_usage = cpu_end - cpu_start
+        # --- END METRICS ADDITION --- # <<< ADDED
         
         # Update last accessed
         file_info.update_last_accessed()
@@ -284,9 +354,31 @@ def download_file(file_id):
         temp_file = tempfile.NamedTemporaryFile(delete=False)
         temp_file.write(decrypted_data)
         temp_file.close()
+
+        # --- ADDED FOR PERFORMANCE CSV LOGGING --- # <<< ADDED
+        try:
+            download_fieldnames = [
+                'timestamp', 'username', 'filename', 'file_size_bytes',
+                'sensitivity', 'decryption_time_ms', 'cpu_usage_percent', 
+                'memory_usage_mb'
+            ]
+            download_metrics = {
+                'timestamp': datetime.now().isoformat(),
+                'username': current_user.username,
+                'filename': file_info.original_filename,
+                'file_size_bytes': file_info.file_size,
+                'sensitivity': sensitivity,
+                'decryption_time_ms': decryption_time,
+                'cpu_usage_percent': cpu_usage,
+                'memory_usage_mb': mem_end
+            }
+            write_metrics_to_csv(DOWNLOAD_PERFORMANCE_CSV, download_metrics, download_fieldnames)
+        except Exception as e:
+            print(f"Failed to log download performance: {e}")
+        # --- END PERFORMANCE LOGGING --- # <<< ADDED
         
         log_audit('FILE_DOWNLOAD', 
-                 details=f'File: {file_info.original_filename}, Time: {decryption_time:.1f}ms') # <--- MODIFIED LOG
+                 details=f'File: {file_info.original_filename}, Time: {decryption_time:.1f}ms, CPU: {cpu_usage:.2f}%, Mem: {mem_end:.2f}MB') # <<< MODIFIED LOG FORMATTING
         
         return send_file(
             temp_file.name,
@@ -306,6 +398,7 @@ def download_file(file_id):
 def delete_file(file_id):
     """Delete encrypted file"""
     try:
+        # Using the original get_or_404
         file_info = EncryptedFile.query.get_or_404(file_id)
         
         # Check ownership
@@ -368,14 +461,43 @@ def show_keys():
     all_keys = key_storage.get_all_user_keys(current_user.username)
     return render_template('keys.html', keys=all_keys, user_id=current_user.username)
 
-# Error handlers
+
+# --- ROUTES FOR DOWNLOADING CSV REPORTS --- # <<< ADDED
+@app.route('/download/report/upload_metrics')
+@login_required
+def download_upload_report():
+    """Route to download the upload performance CSV."""
+    try:
+        return send_file(
+            UPLOAD_PERFORMANCE_CSV,
+            as_attachment=True,
+            download_name='upload_performance_metrics.csv',
+            mimetype='text/csv'
+        )
+    except Exception as e:
+        flash(f'Could not download report: File not found or error: {e}', 'error')
+        return redirect(url_for('index'))
+
+@app.route('/download/report/download_metrics')
+@login_required
+def download_download_report():
+    """Route to download the download performance CSV."""
+    try:
+        return send_file(
+            DOWNLOAD_PERFORMANCE_CSV,
+            as_attachment=True,
+            download_name='download_performance_metrics.csv',
+            mimetype='text/csv'
+        )
+    except Exception as e:
+        flash(f'Could not download report: File not found or error: {e}', 'error')
+        return redirect(url_for('index'))
+# --- END ADDED --- #
+
+
+# Error handlers - Keeping original versions
 @app.errorhandler(404)
 def not_found(error):
-    # --- NOTE ---
-    # This is the function causing the 'TemplateNotFound' error from your log.
-    # It will crash *until* you create a file named '404.html'
-    # inside your 'templates' folder.
-    # --- END NOTE ---
     return render_template('404.html'), 404
 
 @app.errorhandler(403)
