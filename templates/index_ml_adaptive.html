@@ -189,6 +189,7 @@
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
+            gap: 15px; /* Added gap */
         }
         .file-name {
             font-size: 1.2em;
@@ -229,12 +230,42 @@
             display: inline-block;
             transition: all 0.3s;
             font-weight: bold;
+            font-size: 0.9em; /* Added */
         }
         .download-btn:hover {
             transform: scale(1.05);
             box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
         }
         
+        /* --- NEW CSS FOR DELETE BUTTON --- */
+        .file-actions {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 10px;
+            margin-left: auto; /* Push buttons to the right */
+        }
+        .delete-btn {
+            background: linear-gradient(135deg, #f5576c 0%, #dc3545 100%);
+            color: white;
+            padding: 10px 25px;
+            border: none;
+            border-radius: 25px;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.9em;
+            width: 100%; /* Make same width as download button */
+            text-align: center;
+        }
+        .delete-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(245, 87, 108, 0.4);
+        }
+        /* --- END NEW CSS --- */
+
         .flash-messages {
             margin: 20px 0;
         }
@@ -280,7 +311,6 @@
 </head>
 <body>
     <div class="container">
-        <!-- Navigation Bar -->
         <div class="nav-bar">
             <div class="nav-links">
                 <a href="/" class="nav-link active">🏠 Dashboard</a>
@@ -382,8 +412,7 @@
                 {% for file_id, file_info in files.items() %}
                 <div class="file-item">
                     <div class="file-header">
-                        <div style="flex: 1;">
-                            <div class="file-name">🔒 {{ file_info.original_filename }}</div>
+                        <div style="flex: 1; min-width: 300px;"> <div class="file-name">🔒 {{ file_info.original_filename }}</div>
                             <div class="file-meta">
                                 <div class="meta-item">
                                     <span class="sensitivity-badge badge-{{ file_info.sensitivity|lower }}">
@@ -409,10 +438,14 @@
                                 </div>
                             </div>
                         </div>
-                        <div>
+                        
+                        <div class="file-actions">
                             <a href="/download/{{ file_id }}" class="download-btn">🔓 Decrypt & Download</a>
+                            <form action="/delete/{{ file_id }}" method="POST" onsubmit="return confirm('Are you sure you want to delete \'{{ file_info.original_filename }}\'?');" style="margin: 0;">
+                                <button type="submit" class="delete-btn">🗑️ Delete</button>
+                            </form>
                         </div>
-                    </div>
+                        </div>
                 </div>
                 {% endfor %}
             {% else %}
